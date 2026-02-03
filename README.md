@@ -1,122 +1,96 @@
 # IncidentFlow
 
-Incident automation platform.
+**Automated Incident Response Platform for Windows**
 
-IncidentFlow automatically detects Windows system errors, classifies severity using AI, and creates Slack incidents — all running as Windows services.
+IncidentFlow monitors Windows Event Logs, uses AI to classify the severity of incidents, and automatically reports them to Slack. It runs as a set of background Windows Services for continuous operation.
 
-# IncidentFlow
+## 🚀 Features
 
-IncidentFlow is a Windows-based incident automation platform that detects system errors, classifies severity using AI, and creates Slack incidents.
+- **Real-time Monitoring**: Detects errors from Windows Event Logs instantly.
+- **AI-Powered Severity**: Uses DeepSeek AI to intelligently classify incidents as `CRITICAL`, `HIGH`, `MEDIUM`, or `LOW`.
+- **Slack Integration**: Sends formatted alerts directly to your Slack workspace.
+- **Resilient Architecture**: Runs as three decoupled microservices (Log Agent, MCP Server, Slack Agent) managed by NSSM.
 
-## Features
-- Windows Event Log monitoring
-- AI severity classification
-- Slack incident creation
-- Runs as Windows services (NSSM)
+---
 
-## Install
-1. Install Python 3.11
-2. Install NSSM
-3. Clone repo
-4. Configure environment variables
-5. Run `install\nssm-install.ps1`
+## 🛠️ Installation
 
-## Commands
-python -m uvicorn agents.slack_agent.main:app --host 127.0.0.1 --port 9001 (OR)
-python -m uvicorn agents.slack_agent.main:app --port 9001
+### Prerequisites
+- **Python 3.11+** installed and added to PATH.
+- **NSSM** (included or installed via Chocolatey/Scoop).
+- **Administrator Privileges** (required to install services).
 
-python -c "import agents.slack_agent.main; print('OK')"
+### Quick Start
+We provide an automated PowerShell installer to set up everything for you.
 
-MCP Server (FastAPI + uvicorn)  
-   nssm install IncidentFlow-MCP
+1.  **Clone the repository**:
+    ```powershell
+    git clone https://github.com/your-repo/incidentflow.git
+    cd incidentflow
+    ```
 
-    Application tab
+2.  **Run the Installer (as Administrator)**:
+    ```powershell
+    .\install\install_services.ps1
+    ```
+    - The script will ask for your API keys (`INCIDENTFLOW_API_KEY`, `DEESEEK_API_KEY`, `SLACK_WEBHOOK_URL`) if they are not already set.
+    - It will install and start all three services automatically.
 
-        Path
-        
-        C:\python.exe
-        
-        
-        Arguments
-        
-        -m uvicorn mcp_server.server:app --host 127.0.0.1 --port 8000
-        
-        
-        Startup directory
-        
-        C:\incidentflow-mcpserver
+---
 
-IncidentFlow-Slack
-   nssm install IncidentFlow-Slack
-    Application tab
-        Path
-        
-        C:\Python311\python.exe
-        Arguments
-        
-        -m uvicorn agents.slack_agent.main:app --host 127.0.0.1 --port 9001
-        Startup directory
-        
-        C:\incidentflow-mcpserver
+## ⚙️ Configuration
 
-IncidentFlow-LogAgent
-   nssm install IncidentFlow-LogAgent
-    Application tab
-        Path
-        
-        C:\Python311\python.exe
-        Arguments
-        
-        agents\log_agent\main.py
-        Startup directory
-        
-        C:\incidentflow-mcpserver
+The system uses the following environment variables (set automatically by the installer):
 
-Powershell
-    Set environment variables (securely)
+| Variable | Description |
+| :--- | :--- |
+| `INCIDENTFLOW_API_KEY` | Secure key for internal API communication. |
+| `DEESEEK_API_KEY` | API Key for DeepSeek AI (for severity classification). |
+| `SLACK_WEBHOOK_URL` | Webhook URL for your Slack channel. |
 
-    nssm set IncidentFlow-MCP AppEnvironmentExtra `
-    "INCIDENTFLOW_API_KEY=supersecretkey"
-    nssm set IncidentFlow-MCP AppEnvironmentExtra `
-    "DEESEEK_API_KEY=your_deepseek_key"
-    nssm set IncidentFlow-Slack AppEnvironmentExtra `
-    "SLACK_WEBHOOK_URL=https://hooks.slack.com/..."
+---
 
-    
-    START SERVICES (IN CORRECT ORDER)
+## 🧪 Testing
 
-        nssm start IncidentFlow-Slack
-        nssm start IncidentFlow-MCP
-        nssm start IncidentFlow-LogAgent
+You can verify the system is working by sending a manual test incident.
 
-        nssm status IncidentFlow-MCP
-    
- 
-    Test MCP API manually (PowerShell-safe)
+### Run the Test Script
+```powershell
+.\test_flow.ps1
+```
+This script sends a simulated "CRITICAL" incident to the MCP server, which should then appear in your Slack.
 
-         Invoke-RestMethod `
-              -Uri http://127.0.0.1:8000/tool/new_incident `
-              -Method POST `
-              -Headers @{ "X-API-Key" = "supersecretkey" } `
-              -Body (@{
-                host = "TEST-HOST"
-                source = "ManualTest"
-                event_id = 9999
-                level = "ERROR"
-                message = "Disk failure detected"
-                timestamp = (Get-Date).ToString("o")
-              } | ConvertTo-Json) `
-              -ContentType "application/json"
+### Test Severity Classification
+To test how the AI classifies different types of incidents:
+```powershell
+.\test_severity.ps1
+```
 
-    Expected response
-        {
-          "status": "ok",
-          "severity": "CRITICAL"
-        }
-    Verify Slack message
+---
 
-         expected message
-                 Incident Detected
-                    Severity: CRITICAL
-                    Host: TEST-HOST
-                    Message: Disk failure detected
+## 🔍 Troubleshooting
+
+### Check Service Status
+```powershell
+nssm status IncidentFlow-MCP
+nssm status IncidentFlow-Slack
+nssm status IncidentFlow-LogAgent
+```
+
+### View Logs
+Logs are located in the `logs/` directory.
+- **MCP Server Errors**: `logs/IncidentFlow-MCP.err`
+- **Slack Agent Errors**: `logs/IncidentFlow-Slack.err`
+
+To tail the logs in real-time:
+```powershell
+Get-Content logs\IncidentFlow-MCP.err -Wait
+```
+
+### Restart Services
+If you need to apply changes or restart the system:
+```powershell
+nssm restart IncidentFlow-MCP
+nssm restart IncidentFlow-Slack
+nssm restart IncidentFlow-LogAgent
+```
