@@ -94,3 +94,10 @@ nssm restart IncidentFlow-MCP
 nssm restart IncidentFlow-Slack
 nssm restart IncidentFlow-LogAgent
 ```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
